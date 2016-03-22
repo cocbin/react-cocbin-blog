@@ -1,13 +1,17 @@
 'use strict';
 
 import React ,{Component} from 'react';
-import {Link} from 'react-router';
+import {Link,browserHistory} from 'react-router';
 import './Menu.less';
 
 const imageAvatar = require('./images/avatar.png');
 const imageLogo = require('./images/logo.png');
-
+import {addClass,removeClass,hasClass} from '../DomOperation';
 import MenuItems from './MenuItems';
+import {POST,API} from '../Fetch';
+import notification from '../Notification';
+import Confirm from '../Confirm';
+
 
 class Menu extends Component {
 
@@ -15,25 +19,6 @@ class Menu extends Component {
     constructor(props) {
 
         super(props);
-        this.state = {
-            authorInfoHeight:145,
-            avatarWidth:105,
-            avatarHeight:105,
-            avatarLeft:67,
-            logoLeft:53,
-            logoHeight:30,
-            logoBottom:0
-        };
-
-        this.defaule = {
-            authorInfoHeight:145,
-            avatarWidth:105,
-            avatarHeight:105,
-            avatarLeft:67,
-            logoLeft:53,
-            logoHeight:30,
-            logoBottom:0
-        };
     }
 
     componentDidMount () {
@@ -47,24 +32,10 @@ class Menu extends Component {
         }
     }
 
-    componentDidUpdate(prevProps) {
-        if(prevProps.logged != this.props.logged) {
-
-            //菜单出现动画
-            let menu = this.refs.adminMenu.getDOMNode();
-            let lis = menu.getElementsByClassName('menuItems');
-            for (let i = 0;i<lis.length;i++) {
-                setTimeout(()=>{
-                    addClass(lis[i],"bounceInRight");
-                },50*i);
-            }
-        }
-    }
-
     render() {
         return (
             <div ref = "menu" id = {this.props.id} style = {{width:this.props.width}}>
-                <div id = "authorInfo" style = {{height:this.state.authorInfoHeight}}>
+                <div id = "authorInfo">
                     <Link to = "/">
                         <img id = "avatar"
                              src={imageAvatar}
@@ -79,13 +50,16 @@ class Menu extends Component {
                              />
                     </Link>
                 </div>
+                {
+                    this.props.logged?this.renderAdminMenu():""
+                }
                 <MenuItems
                     title = "Home"
                     link = "/home"
                 />
                 <MenuItems
                     title = "Category"
-                    link = "/category/0"
+                    link = "/category"
                 />
                 <MenuItems
                     title = "Tags"
@@ -95,49 +69,53 @@ class Menu extends Component {
                     title = "About"
                     link = "/about"
                 />
-                {
-                    this.props.logged?this.renderAdminMenu():""
-                }
+
             </div>
         );
     }
 
     renderAdminMenu() {
         return (
-            <div ref = "adminMenu">
-                <MenuItems
-                    title = "CategoryAdmin"
-                    link = "/admin/cate"
-                />
-                <MenuItems
-                    title = "TagsAdmin"
-                    link = "/admin/tags"
-                />
-                <MenuItems
-                    title = "ArticleAdmin"
-                    link = "/admin/article"
-                />
+            <div className = "adminButton">
+                {this.renderIconButton('/admin/cate','&#xe669;')}
+                {this.renderIconButton('/admin/tags','&#xe66e;')}
+                {this.renderIconButton('/admin/article','&#xe66c;')}
+                {this.renderIconButton('/article/write','&#xe64e;')}
+                <a href = "javascript:void(0);" onClick = {this.logout}><i className = "iconfont">&#xe66f;</i></a>
             </div>
         );
     }
 
-}
+    renderIconButton(link,icon) {
+        return (
+            <Link to = {link} activeStyle = {{color:'rgb(120, 192, 252)'}}>
+                <i className = "iconfont" dangerouslySetInnerHTML = {{__html:icon}}/>
+            </Link>
+        )
+    }
 
-
-function hasClass(obj, cls) {
-    return obj.className?obj.className.match(new RegExp('(\\s|^)' + cls + '(\\s|$)')):false;
-}
-
-function addClass(obj, cls) {
-    if (!hasClass(obj, cls)) obj.className =  obj.className+" " + cls;
-}
-
-function removeClass(obj, cls) {
-    if (hasClass(obj, cls)) {
-        var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)');
-        obj.className = obj.className.replace(reg, ' ');
+    logout() {
+        Confirm.show({
+            title:"退出登录",
+            content:"是否确定退出登录",
+            callback:(result)=> {
+                if(result)
+                POST(API.ADMIN_LOGOUT, undefined, (err) => {
+                    if (err == undefined) {
+                        notification.notice({
+                            content: '退出登录成功'
+                        });
+                        API.LOGGED = false;
+                        browserHistory.push({pathname:'/',state:{logged:false}});
+                    } else {
+                        notification.notice({
+                            content: '退出登录失败,ERR:' + err
+                        });
+                    }
+                })
+            }
+        })
     }
 }
-
 
 module .exports = Menu;

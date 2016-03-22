@@ -1,35 +1,33 @@
 'use strict';
 
 import React, {Component} from 'react';
-
-import './Login.less';
+import {POST,API} from '../Fetch';
+import notification from '../Notification';
+import {browserHistory} from 'react-router';
 
 class Login extends Component {
 
     constructor(props) {
         super(props);
-
-        this.state = {
-            isUserNameEmpty:false,
-            isPasswordEmpty:false
-        }
     }
 
     render() {
         return (
-            <div className = "animated bounceInRight" id = "loginBox">
-                <h3>Login</h3>
+            <div className = "animated bounceInRight" >
+                <h3 className = "formTitle">Login</h3>
+
                 <div className = "inputBox">
                     <i className = "iconfont">&#xe666;</i>
                     <input ref = "userName" type="text" name = "userName" placeholder = "UserName"/>
-                    {this.state.isUserNameEmpty&&this.renderErrorTip("用户名不能为空")}
                 </div>
+
                 <div className = "inputBox">
                     <i className = "iconfont">&#xe667;</i>
                     <input ref = "password" type="password" name = "password" placeholder = "Password"/>
-                    {this.state.isPasswordEmpty&&this.renderErrorTip("密码不能为空")}
                 </div>
-                <input type="submit" onClick = {this.handleSubmit.bind(this)}/>
+                <div style = {{textAlign:'center'}}>
+                    <input type="submit" className = "btn" onClick = {this.handleSubmit.bind(this)} />
+                </div>
             </div>
         )
     }
@@ -37,36 +35,33 @@ class Login extends Component {
     handleSubmit() {
         let userName = this.refs.userName.getDOMNode().value;
         let password = this.refs.password.getDOMNode().value;
+
         if(userName == "") {
-            this.setState({
-                isUserNameEmpty:true
+            notification.notice({
+                content:"用户名不能为空!"
             });
-            console.log("userName empty")
-        } else {
-            this.setState({
-                isUserNameEmpty:false
-            });
+            return ;
         }
 
         if(password == "") {
-            this.setState({
-                isPasswordEmpty:true
+            notification.notice({
+                content:"密码不能为空!"
             });
-        } else {
-            this.setState({
-                isPasswordEmpty:false
-            });
+            return ;
         }
-        console.log(`login -> userName = ${userName} password = ${password}`);
-    }
 
-    renderErrorTip (tip){
-        return (
-            <div className = "errorTip">
-                <span className="tipContent">{tip}</span>
-                <div className = "triangle"></div>
-            </div>
-        )
+        console.log(`login -> userName = ${userName} password = ${password}`);
+        POST(API.ADMIN_LOGIN,{userName:userName,password:password},(err,date) => {
+            if(err) {
+                notification.notice({
+                    content:'登录失败,ERR:'+err
+                });
+            } else {
+                console.log("登录成功");
+                API.LOGGED = true;
+                browserHistory.push({pathname:'/',state:{logged:true}});
+            }
+        })
     }
 }
 

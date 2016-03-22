@@ -1,0 +1,82 @@
+#confirm {
+  position: absolute;
+  left:0;
+  right:0;
+  top:0;
+  bottom:0;
+  z-index: 100;
+  background-color: rgba(0,0,0,.3);
+}
+
+#confirmInner {
+  position: relative;
+  width: 360px;
+  border-radius: 4px;
+  border:1px solid #eee;
+  background-color: #fff;
+  margin:100px auto 0;
+
+  h3 {
+    text-align: center;
+    padding:8px;
+    font-size: 18px;
+    color:#ff5555;
+    border-bottom:1px solid #eee;
+  }
+
+  p {
+    padding:8px;
+    color:#666;
+  }
+
+  .btnGroup {
+
+    padding:8px;
+    height:33px;
+
+    button {
+      display: block;
+      border-radius: 4px;
+      padding:8px 20px;
+      float: right;
+      border:none;
+      outline:none;
+      margin-left:20px;
+    }
+
+    .cancleBtn {
+      background-color: lighten(#337ab7,5%);
+      color:#fff;
+      border:1px solid #2e6da4;
+      &:hover {
+        background: #337ab7;
+      }
+      &:focus {
+        background: darken(#337ab7,10%);
+      }
+    }
+
+    .okBtn {
+      background-color: lighten(#c9302c,5%);
+      color:#fff;
+      border:1px solid #d43f3a;
+      &:hover {
+        background: #c9302c;
+      }
+      &:focus {
+        background: darken(#c9302c,10%);
+      }
+    }
+  }
+
+  .closeBtn {
+    position: absolute;
+    padding:8px;
+    top:0;
+    right:0;
+    background: none;
+    border:none;
+    outline:none;
+    font-size:20px;
+  }
+}

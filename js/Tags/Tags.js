@@ -1,9 +1,11 @@
 'use strict';
 
 import React, {Component} from 'react';
-import {Link} from 'react-router';
+import {Link,browserHistory} from 'react-router';
+import notification from '../Notification';
+import ScrollBar from '../ScrollBar';
 
-import './Tags.less';
+import {GET,API} from '../Fetch';
 
 class Tags extends Component {
 
@@ -15,38 +17,43 @@ class Tags extends Component {
     }
 
     componentDidMount() {
-        fetch('./blogs/tags.json')
-            .then(res=>res.json())
-            .then(json =>{
-                if(json.length>0) {
-                    this.setState({
-                        tags:json
-                    });
+        GET(API.GET_TAGS,undefined,(err,dataList)=>{
+            if(err) {
+                notification.notice({
+                    content:"获取标签列表失败,Err:"+err
+                });
+            } else {
+                this.setState({
+                    tags:dataList
+                });
+                if(dataList.length>0) {
+                    browserHistory.push('/tags/'+dataList[0]._id);
                 }
-            });
+            }
+        });
     }
 
     render() {
         return (
-            <div className = "animated bounceInRight">
-                <ul className="tagList" style = {{width:this.props.routes.length==2?710:64}}>
-                    {this.state.tags.map((tag,key)=>{
-                        return this.renderTagsList(tag,key)
-                    })}
-                </ul>
-
+            <div id = "categoryBox" className = "animated bounceInRight">
+                <ScrollBar>
+                    <ul className="cateList">
+                        {this.state.tags.map((tag,key)=>{
+                            return this.renderTagsList(tag,key)
+                        })}
+                    </ul>
+                </ScrollBar>
                 {this.props.children}
-
             </div>
         )
     }
 
     renderTagsList(tag,key){
         return (
-            <li className = "tagCell" key = {key}>
-                <Link to = {"tags/"+tag.id} activeStyle = {{"color":"#000"}} >
-                    <i className = "tagIcon iconfont" dangerouslySetInnerHTML = {{__html:(tag.icon)}}/>
-                    <span className = "tagContent">{tag.name}</span>
+            <li className = "cateCell" key = {key}>
+                <Link to = {'/tags/'+tag._id} activeStyle = {{"color":"#000"}} >
+                    <i className = "cateIcon iconfont" dangerouslySetInnerHTML = {{__html:(tag.icon)}}/>
+                    <span className = "cateContent">{tag.name}</span>
                 </Link>
             </li>
         )

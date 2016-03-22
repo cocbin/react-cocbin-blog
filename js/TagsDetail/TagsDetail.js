@@ -3,6 +3,12 @@
 import React ,{Component} from 'react';
 import {Link} from 'react-router';
 
+import {GET,API} from '../Fetch';
+import ArticleRow from '../ArticleRow';
+import notification from '../Notification';
+import Copyright from '../Copyright';
+
+
 import {addClass,removeClass,hasClass} from '../DomOperation';
 
 class CategoryDetail extends Component {
@@ -11,30 +17,30 @@ class CategoryDetail extends Component {
         super(props);
         this.state = {
             id:0,
-            articles:[]
-        }
+            articles:[],
+            onLoadding:false,
+            hasLoadAll:false
+        };
+
+        this.page = 1;
+        this.id = this.props.params.id;
     }
 
     componentWillUpdate(nextProps){
         if(nextProps.params.id != this.props.params.id) {
+            this.id = nextProps.params.id;
             this.refresh(nextProps.params.id);
         }
     }
 
     componentDidMount() {
-        this.refresh(this.props.params.id);
+        this.refresh();
     }
 
-    refresh(id){
-        //刷新类别  搜索内容
-        //通过tagid搜索
-        fetch("./blogs/blog_1.json")
-        .then(res=>res.json())
-        .then(json=>{
-            this.setState({
-                articles:json
-            });
-        });
+    refresh(){
+        this.page = 1;
+        //刷新类别搜索内容
+        this.getArticleList();
 
         //刷新动画
         var box = this.refs.cateDetailBox.getDOMNode();
@@ -42,61 +48,110 @@ class CategoryDetail extends Component {
             removeClass(box,"bounceInRight");
 
             setTimeout(()=>{
-
                 //find category by id
-
                 addClass(box,"bounceInRight");
-                this.setState({
-                    id:id
-                });
             },100);
         }
+    }
+
+    loadMore() {
+        this.page++;
+        this.getArticleList();
+    }
+
+    getArticleList() {
+        GET(API.GET_ARTICLE_LIST,{tagsid:this.id,page:this.page,pagesize:20},(err,docs) => {
+            if(err) {
+                notification.notice({
+                    content:"文章获取失败,ERR:"+err
+                });
+            } else {
+                if(this.page == 1) {
+                    this.setState({
+                        articles:docs,
+                        hasLoadAll: false
+                    });
+                } else {
+                    if(docs.length == 0) {
+                        this.setState({
+                            hasLoadAll:true,
+                            onLoadding:false
+                        });
+                    } else {
+                        var articles = this.state.articles;
+                        articles = articles.concat(docs);
+                        this.setState({
+                            articles:articles,
+                            onLoadding:false
+                        });
+                    }
+                }
+            }
+        })
     }
 
     render() {
 
         return (
-            <div ref = "cateDetailBox" className = "cateDetailBox animated">
-                category detail {this.state.id}
-                <ul>
-                    {this.state.articles.map((row,key) =>this.renderArticleList(row,key))}
+            <div ref = "cateDetailBox"
+                 className = "cateDetailBox animated"
+                 style = {{overflowY:'scroll'}}
+                 onScroll = {this.onScroll.bind(this)}>
+                <ul className = "articleInner" >
+                    {this.state.articles.map((row,key) => <ArticleRow article = {row} key = {key}/>)}
                 </ul>
+                {this.state.onLoadding&&
+                <div className = "spinner">
+                    <div className = "spinner-container container1">
+                        <div className = "circle1"></div>
+                        <div className = "circle2"></div>
+                        <div className = "circle3"></div>
+                        <div className = "circle4"></div>
+                    </div>
+                    <div className = "spinner-container container2">
+                        <div className = "circle1"></div>
+                        <div className = "circle2"></div>
+                        <div className = "circle3"></div>
+                        <div className = "circle4"></div>
+                    </div>
+                    <div className = "spinner-container container3">
+                        <div className = "circle1"></div>
+                        <div className = "circle2"></div>
+                        <div className = "circle3"></div>
+                        <div className = "circle4"></div>
+                    </div>
+                </div>}
+                {this.state.hasLoadAll&&<div className = "noMore">没有更多文章了</div>}
+                <Copyright/>
             </div>
         );
     }
 
-    renderArticleList(row,key) {
-        return (
-            <li key = {key} className = "articleListBox clearfix">
-                <Link to = {"/articles/"+row.id}>
-                    <h2>{row.title}</h2>
-                    <ul className = "clearfix">
-                        {this.renderArticleTag("&#xe600;",row.date)}
-                        {this.renderArticleTag("&#xe603;",row.like)}
-                        {this.renderArticleTag("&#xe601;",row.look)}
-                    </ul>
-                    <p style = {{marginTop:15}}>
-                        {row.summary}
-                    </p>
-                    <ul className = "clearfix" style = {{float:"right"}}>
-                        {row.tags.map((tag,key)=>
-                            this.renderArticleTag("&#xe602;",tag.name,key)
-                        )}
-                    </ul>
-                </Link>
-            </li>
-        );
-    }
 
-    renderArticleTag(icon,name,key) {
-        return (
-            <li className="articleTagsBox" key = {key}>
-                <i className = "articleTagIcon iconfont" dangerouslySetInnerHTML = {{__html:icon}}/>
-                <span className = "infoContent">{name}</span>
-            </li>
-        );
-    }
+    onScroll(e){
 
+        if(this.state.onLoadding == true||this.state.hasLoadAll) {
+            return ;
+        }
+
+        var scrollTop = e.target.scrollTop;
+        if(this.lastScrollTop&&this.lastScrollTop-scrollTop > 0) {
+            this.lastScrollTop = scrollTop;
+            return ;
+        }
+
+        this.lastScrollTop = scrollTop;
+
+        var clientHeight = e.target.firstChild.clientHeight;
+        var offsetHeight = e.target.offsetHeight;
+
+        if(clientHeight - scrollTop - offsetHeight < 100) {
+            this.setState({
+                onLoadding:true
+            });
+            this.loadMore();
+        }
+    }
 }
 
 module.exports = CategoryDetail;

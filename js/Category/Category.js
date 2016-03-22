@@ -1,7 +1,12 @@
 'use strict';
 
 import React, {Component} from 'react';
-import {Link} from 'react-router';
+import {Link,browserHistory} from 'react-router';
+
+import {GET,API} from '../Fetch';
+import ScrollBar from '../ScrollBar';
+import notification from '../Notification';
+
 
 import './Category.less';
 
@@ -16,26 +21,34 @@ class Category extends Component {
     }
 
     componentDidMount() {
-        fetch('./blogs/category.json')
-            .then(res=>res.json())
-            .then(json =>{
-                if(json.length>0) {
-                    this.setState({
-                        category:json
-                    });
+        GET(API.GET_CATEGORY,undefined,(err,docs) => {
+            if(err) {
+                notification.notice({
+                    content:"获取标签列表失败,Err:"+err
+                });
+            } else {
+                this.setState({
+                    category:docs
+                });
+                if(docs.length>0) {
+                    browserHistory.push('/category/'+docs[0]._id);
                 }
-            });
+            }
+        });
     }
 
 
     render() {
         return (
-            <div className = "animated bounceInRight">
-                <ul className="cateList">
-                    {this.state.category.map((cate,key)=>{
-                        return this.renderCategoryList(cate,key)
-                    })}
-                </ul>
+            <div id = "categoryBox" className = "animated bounceInRight">
+                <ScrollBar>
+                    <ul className="cateList">
+                        {this.state.category.map((cate,key)=>{
+                            return this.renderCategoryList(cate,key)
+                        })}
+                    </ul>
+                    <div className="clearfix"></div>
+                </ScrollBar>
 
                 {this.props.children}
 
@@ -46,7 +59,7 @@ class Category extends Component {
     renderCategoryList(cate,key){
         return (
             <li className = "cateCell" key = {key}>
-                <Link to = {"category/"+cate._id} activeStyle = {{"color":"#000"}} >
+                <Link to = {"/category/"+cate._id} activeStyle = {{"color":"#000"}} >
                     <i className = "cateIcon iconfont" dangerouslySetInnerHTML = {{__html:(cate.icon)}}/>
                     <span className = "cateContent">{cate.name}</span>
                 </Link>

@@ -2,7 +2,8 @@
 
 import React, {Component} from 'react';
 
-import { Router, Route,IndexRoute ,hashHistory} from 'react-router';
+import { Router, Route,IndexRoute ,browserHistory} from 'react-router';
+import { API,POST} from '../Fetch';
 
 import Menu from  '../Menu';
 import Article from '../Article';
@@ -17,7 +18,7 @@ import Login from  '../Login';
 import AdminCate from '../AdminCate';
 import AdminTags from '../AdminTags';
 import AdminArticle from '../AdminArticle';
-
+import WriteArticle from '../WriteArticle';
 
 import './App.less';
 import './cssreset.css';
@@ -37,16 +38,26 @@ class App extends Component {
 
     componentDidMount() {
         //获取登录状态
-        setTimeout(()=>{
+
+        POST(API.ADMIN_CHECKLOGIN,undefined,(err) =>{
+           if(err==undefined) {
+               API.LOGGED = true;
+               this.setState({
+                   logged:true
+               });
+           }
+        });
+    }
+
+    componentWillUpdate(nextProps){
+        if(nextProps.location.state&&nextProps.location.state.logged != this.state.logged) {
             this.setState({
-                logged:true
-            });
-        },1000);
-        //服务器太慢了,5秒后验证额登录状态
+                logged:nextProps.location.state.logged
+            })
+        }
     }
 
     render () {
-
         var menuWith = this.props.routes.length==1?"100%":240;
 
         return (
@@ -55,6 +66,8 @@ class App extends Component {
                 <div id="articleBox">
                     {this.props.children}
                 </div>
+                <div id = "notificationBox"></div>
+                <div id = "confirmBox"></div>
             </div>
         );
     }
@@ -82,18 +95,18 @@ class Routers extends Component {
 
     render () {
         return (
-            <Router history = {hashHistory}>
+            <Router history = {browserHistory}>
                 <Route path="/" component = {App}>
-                    <Route path = "/home" component = {Article} />
-                    <Route path="/articles" component = {Article}>
-                        <Route path = ":id" component = {ArticleDetail}/>
-                    </Route>
+                    <Route path="/home" component = {Article}/>
+                    <Route path = "/article/write" component = {WriteArticle}/>
+                    <Route path = "/article/edit/:id" component = {WriteArticle}/>
+                    <Route path = "/article/:id" component = {ArticleDetail}/>
                     <Route path = "/category" component = {Category}>
-                        <Route path = ":id" component = {CategoryDetail}/>
+                        <Route path = "/category/:id" component = {CategoryDetail}/>
                     </Route>
                     <Route path = "/about" component = {About}/>
                     <Route path = "/tags" component = {Tags}>
-                        <Route path = ":id" component = {TagsDetail}/>
+                        <Route path = "/tags/:id" component = {TagsDetail}/>
                     </Route>
                     <Route path = "/login"  component = {Login}/>
                     <Route path = "/admin/cate"  component = {AdminCate}/>

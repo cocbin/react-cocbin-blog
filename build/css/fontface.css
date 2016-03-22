@@ -1,0 +1,53 @@
+
+@font-face {
+    font-family: 'exo';
+    src: url('../fonts/exo-bold-webfont.eot');
+    src: url('../fonts/exo-bold-webfont.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/exo-bold-webfont.woff2') format('woff2'),
+    url('../fonts/exo-bold-webfont.woff') format('woff'),
+    url('../fonts/exo-bold-webfont.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+
+}
+
+
+
+
+@font-face {
+    font-family: 'exo';
+    src: url('../fonts/exo-extralight-webfont.eot');
+    src: url('../fonts/exo-extralight-webfont.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/exo-extralight-webfont.woff2') format('woff2'),
+    url('../fonts/exo-extralight-webfont.woff') format('woff'),
+    url('../fonts/exo-extralight-webfont.ttf') format('truetype');
+    font-weight: 100;
+    font-style: normal;
+
+}
+
+
+@font-face {
+    font-family: 'exo';
+    src: url('../fonts/exo-light-webfont.eot');
+    src: url('../fonts/exo-light-webfont.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/exo-light-webfont.woff2') format('woff2'),
+    url('../fonts/exo-light-webfont.woff') format('woff'),
+    url('../fonts/exo-light-webfont.ttf') format('truetype');
+    font-weight: 200;
+    font-style: normal;
+}
+
+
+
+
+@font-face {
+    font-family: 'exo';
+    src: url('../fonts/exo-medium-webfont.eot');
+    src: url('../fonts/exo-medium-webfont.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/exo-medium-webfont.woff2') format('woff2'),
+    url('../fonts/exo-medium-webfont.woff') format('woff'),
+    url('../fonts/exo-medium-webfont.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}

@@ -2,6 +2,11 @@
 
 import React, {Component} from 'react';
 
+import ScrollBar from '../ScrollBar';
+import notification from '../Notification';
+import Confirm from '../Confirm';
+import {GET,POST,API} from '../Fetch';
+
 class AdminTags extends Component {
 
     constructor(props) {
@@ -17,32 +22,42 @@ class AdminTags extends Component {
     }
 
     componentDidMount() {
-        fetch('./blogs/tags.json')
-            .then(res=>res.json())
-            .then(json =>{
-                if(json.length>0) {
-                    this.setState({
-                        tags:json
-                    });
-                }
-            });
+        if(!API.LOGGED) {
+            return ;
+        }
+        GET(API.GET_TAGS,undefined, (err,docs) => {
+            if(err) {
+                console.log(err);
+            } else {
+                this.setState({
+                    tags:docs
+                });
+            }
+        })
     }
 
     render() {
-        return (
-            <div className = "animated bounceInRight">
-                <ul className="cateList">
-                    <li className = "cateCell" style = {{color:"#00b2cc"}} onClick = {this.handleCategoryClick.bind(this,undefined,undefined)}>
-                        <i className = "cateIcon iconfont">&#xe668;</i>
-                        <span className = "cateContent">添加</span>
-                    </li>
-                    {this.state.tags.map((cate,key)=>{
-                        return this.renderCategoryList(cate,key)
-                    })}
-                </ul>
 
-                <div className="animated bounceInRight editBox">
-                    <h3>{this.state.selectCate?"Edit":"Add"} a Category</h3>
+        if(!API.LOGGED) {
+            return <div>权限不足</div>
+        }
+
+        return (
+            <div id = "categoryBox" className = "animated bounceInRight">
+                <ScrollBar>
+                    <ul className="cateList">
+                        <li className = "cateCell" style = {{color:"#00b2cc"}} onClick = {this.handleCategoryClick.bind(this,undefined,undefined)}>
+                            <i className = "cateIcon iconfont">&#xe668;</i>
+                            <span className = "cateContent">添加</span>
+                        </li>
+                        {this.state.tags.map((cate,key)=>{
+                            return this.renderCategoryList(cate,key)
+                        })}
+                    </ul>
+                </ScrollBar>
+
+                <div className="animated bounceInRight cateDetailBox">
+                    <h3 className = "formTitle">{this.state.selectCate?"Edit":"Add"} a Tag</h3>
                     <div className = "inputBox">
                         <i className = "iconfont">&#xe669;</i>
                         <input type="text" name = "name" placeholder = "Category Name" value = {this.state.nameValue} onChange = {this.handleInputChange.bind(this,"nameValue")}/>
@@ -55,11 +70,17 @@ class AdminTags extends Component {
                         <i className = "iconfont">&#xe66c;</i>
                         <input type="text" name = "description" placeholder = "Description" value = {this.state.descriptionValue} onChange = {this.handleInputChange.bind(this,"descriptionValue")}/>
                     </div>
+                    <div className="inputBtnGroup">
                     {
                         this.state.selectTag?
-                            <input type="submit" onClick = {this.handleSubmit.bind(this)} value = "编辑" className="animated bounceIn"/>
-                            :<button onClick = {this.handleSubmit.bind(this)} className = "animated bounceIn" >添加</button>
+                            <input type="submit" onClick = {this.handleSubmit.bind(this)} value = "编辑" className="animated bounceIn btn"/>
+                            :<button onClick = {this.handleSubmit.bind(this)} className = "animated bounceIn btn" >添加</button>
                     }
+                    {
+                        this.state.selectTag?
+                            <button onClick = {this.removeTags.bind(this,this.state.selectTag._id)} className = "animated bounceIn btnDel">删除</button>:""
+                    }
+                    </div>
                 </div>
             </div>
         );
@@ -76,6 +97,85 @@ class AdminTags extends Component {
 
     handleSubmit() {
 
+        var tag = {};
+        tag['name'] = this.state.nameValue;
+        tag['icon'] = this.state.iconValue;
+        tag['description'] = this.state.descriptionValue;
+
+        if(this.state.selectTag) {
+            //修改category
+            Confirm.show({
+                title:"修改标签",
+                content:"是否修改标签",
+                callback:(result)=>{
+                    if(result) {
+                        if(this.hasEmptyColumn(tag)) {
+                            notification.notice({
+                                content:"请将表单填写完整"
+                            });
+                        }else{
+                            POST(API.UPDATE_TAGS,{id:this.state.selectTag._id,set:tag},(err,doc) => {
+                                if(err) {
+                                    notification.notice({
+                                        content:"修改标签失败,Err:"+err
+                                    });
+                                } else {
+                                    notification.notice({
+                                        content:"修改标签成功!"
+                                    });
+                                    var newTags = this.state.tags;
+                                    newTags[this.state.selectKey] = tag;
+                                    this.setState({
+                                        tags:newTags
+                                    });
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+        } else {
+            //添加category
+
+            if(this.hasEmptyColumn(tag)) {
+                notification.notice({
+                    content:"请将表单填写完整"
+                });
+            }else{
+                POST(API.PUT_TAGS,tag,(err,doc) => {
+                    if(err) {
+                        notification.notice({
+                            content:"添加标签失败,Err:"+err
+                        });
+                    } else {
+                        notification.notice({
+                            content:"添加标签成功!"
+                        });
+                        var newTags = this.state.tags;
+                        newTags.push(doc);
+                        this.setState({
+                            tags:newTags,
+                            nameValue:"",
+                            iconValue:"",
+                            descriptionValue:""
+                        });
+                    }
+                });
+            }
+        }
+    }
+
+    hasEmptyColumn(data) {
+        for(var key in data) {
+            if(data[key]) {
+                if(data[key].length<=0) {
+                    return true;
+                }
+            }else {
+                return true;
+            }
+        }
+        return false;
     }
 
     handleCategoryClick(cate,selectKey) {
@@ -92,6 +192,39 @@ class AdminTags extends Component {
         var setState = {};
         setState[name] = e.target.value;
         this.setState(setState);
+    }
+
+    removeTags(id) {
+
+        Confirm.show({
+            title:"删除标签",
+            content:"是否确定删除选中的标签",
+            callback:(result)=>{
+                if(result) {
+                    POST(API.REMOVE_TAGS,{id:id},(err) => {
+                        if(err) {
+                            notification.notice({
+                                content:"删除标签失败,Err:"+err
+                            });
+                        } else {
+                            var newTags = this.state.tags;
+                            for(var i = 0;i<newTags.length;i++) {
+                                if(newTags[i]._id==id){
+                                    newTags.splice(i,1);
+                                    break;
+                                }
+                            }
+                            this.setState({
+                                tags:newTags
+                            });
+                            notification.notice({
+                                content:"删除标签成功!"
+                            });
+                        }
+                    })
+                }
+            }
+        });
     }
 }
 

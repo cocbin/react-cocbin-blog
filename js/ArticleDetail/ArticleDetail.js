@@ -3,7 +3,11 @@
 import React,{Component} from 'react';
 import marked from 'marked';
 
+import {GET,API,POST} from '../Fetch';
+import notification from '../Notification';
 import './github.markdown.less';
+import Copyright from '../Copyright';
+import {hasClass} from '../DomOperation';
 
 marked.setOptions({
     renderer: new marked.Renderer(),
@@ -26,7 +30,7 @@ class ArticleDetail extends Component {
         super(props);
 
         this.state = {
-            article:""
+            article:undefined
         }
     }
 
@@ -41,33 +45,154 @@ class ArticleDetail extends Component {
     }
 
     refresh(id){
-        fetch('./blogs/blog_1.json')
-            .then(res=>res.json())
-            .then(json=>{
-                console.log("加载数据中...");
-                var articles = json.filter(one=>{
-                    return one.id==id
+        GET(API.GET_ARTICLE,{id:id},(err,doc) => {
+            if(err) {
+                notification.notice({
+                    content:"获取文章失败,Err:"+err
                 });
-                if(articles&&articles.length==1) {
-
-                    fetch('./blogs/' + articles[0].path)
-                        .then(res=>res.text())
-                        .then(text=> {
-                            this.setState({
-                                article:text
-                            });
-                            console.log("数据加载完成");
-                        });
-                }
-            });
+            } else {
+                this.setState({
+                    article:doc
+                });
+            }
+        });
     }
 
     render() {
+        let article = this.state.article;
+
+
+        var content;
+
+        if(article == undefined) {
+            return (
+                <div className = "spinner">
+                    <div className = "spinner-container container1">
+                        <div className = "circle1"></div>
+                        <div className = "circle2"></div>
+                        <div className = "circle3"></div>
+                        <div className = "circle4"></div>
+                    </div>
+                    <div className = "spinner-container container2">
+                        <div className = "circle1"></div>
+                        <div className = "circle2"></div>
+                        <div className = "circle3"></div>
+                        <div className = "circle4"></div>
+                    </div>
+                    <div className = "spinner-container container3">
+                        <div className = "circle1"></div>
+                        <div className = "circle2"></div>
+                        <div className = "circle3"></div>
+                        <div className = "circle4"></div>
+                    </div>
+                </div>
+            )
+
+        }else {
+            //去标题
+            content = article.content;
+            var i =0;
+            while(i<content.length) {
+                if (content[i] == '\n') {
+                    i++;
+                } else {
+                    break;
+                }
+            }
+            if(content[i]=='#'&&content[i+1]!='#') {
+                content = content.substr(i);
+                content = content.substr(content.indexOf('\n'));
+            }
+        }
+
         return (
-            <div className = "markdown-body animated bounceInRight">
-                <div dangerouslySetInnerHTML = {{__html:(marked(this.state.article))}}/>
+            <div style = {{overflowY:'scroll',height:"100%",width:'100%'}}>
+                <div className = "markdown-body animated bounceInRight articleInner">
+                    <div className = "articleCategoryBox">
+                        <div className = "articleCategory">{article.category&&article.category.name}</div>
+                    </div>
+                    <div className = "articleTagsBox">
+                        {
+                            article.tags?article.tags.map((row,id)=>{
+                              return (
+                                  <ArticleInfoRow
+                                      key = {id}
+                                      icon = {row.icon}
+                                      content = {row.name}
+                                  />
+                              )
+                            }):""
+                        }
+                    </div>
+                    <div className = "articleTitle" style = {{fontSize:'1.6em'}}>{article.title}</div>
+                    <div className = "articleTagsRow clearfix">
+                        <ArticleInfoRow
+                            icon = "&#xe600;"
+                            content = {new Date(article.date).pattern('MM, dd, yyyy')}
+                        />
+                        <ArticleInfoRow
+                            icon = "&#xe603;"
+                            content = { article.like + " LIKE"}
+                        />
+                        <ArticleInfoRow
+                            icon = "&#xe601;"
+                            content = { article.look + " LOOK"}
+                        />
+                    </div>
+                    <div className = "clearfix" style = {{marginBottom:100}}></div>
+
+
+                    <div dangerouslySetInnerHTML = {{__html:(marked(content))}}/>
+                    <div ref = "dsBox" data-thread-key = {article._id} data-title= {article.title} data-url = {document.URL}></div>
+
+                    <Copyright/>
+                </div>
             </div>
         );
+    }
+
+    componentDidUpdate() {
+        if(this.state.article) {
+            //更新完毕后,加载多说评论
+            var el = this.refs.dsBox.getDOMNode();
+            //依赖多说  需要在html文件中引入多说评论的js文件
+            DUOSHUO.EmbedThread(el);
+            var that = this;
+            //为喜欢按钮绑定事件
+            var interval = setInterval(()=>{
+                if(el.getElementsByClassName('ds-like-thread-button').length>0) {
+                    clearInterval(interval);
+                    var likeButton = el.getElementsByClassName('ds-like-thread-button')[0];
+                    likeButton.onclick = function () {
+                        if(hasClass(likeButton, "ds-thread-liked")) {
+                            POST(API.LIKE_ARTICLE,{id:that.state.article._id,like:true},(err)=>{
+                                if(err) {
+                                    console.log(err);
+                                }
+                            });
+                        } else {
+                            POST(API.LIKE_ARTICLE,{id:that.state.article._id,like:false},(err)=>{
+                                if(err) {
+                                    console.log(err);
+                                }
+                            });
+                        }
+                    }
+                }
+            },100);
+        }
+    }
+}
+
+
+class ArticleInfoRow extends Component {
+    render () {
+        return (
+            <div className = "articleTags">
+                <i className = "iconfont" dangerouslySetInnerHTML = {{__html:this.props.icon}}/>
+                <span>{this.props.content}</span>
+            </div>
+        )
     }
 }
 

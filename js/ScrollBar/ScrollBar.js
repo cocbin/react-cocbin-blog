@@ -12,16 +12,21 @@ class ScrollBar extends Component {
 
     render() {
         return (
-            <div ref = "scrollBar" onWheel = {this.handleScroll.bind(this)} id = {this.props.id} style = {{top:this.state.scrollTop}}>
+            <div ref = "scrollBar" onWheel = {this.handleScroll.bind(this)} id = {this.props.id} style = {{top:this.state.scrollTop,height:'100%',position:'absolute',background:'#fafafa',height:'100%',width:100}}>
                 {this.props.children}
             </div>
         );
     }
 
     handleScroll(e) {
-        const height = e.target.scrollHeight+200;
 
-        if(e.deltaY > 0 && this.state.scrollTop<=-height) {
+        var target = this.refs.scrollBar.getDOMNode();
+
+        const scrollBarHeight = target.offsetHeight;
+        const height = target.firstChild.scrollHeight;
+        var offset = height-scrollBarHeight; //内容器高度减掉外容器高度
+
+        if(e.deltaY > 0 && this.state.scrollTop<=-offset) {
             return ;
         }
 

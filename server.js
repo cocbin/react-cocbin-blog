@@ -1,28 +1,35 @@
-var express = require('express');
-var rewrite = require('express-urlrewrite');
-var webpack = require('webpack');
-var webpackDevMiddleware = require('webpack-dev-middleware');
-var WebpackConfig = require('./webpack.config');
+const express = require('express');
+const path = require('path');
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const favicon = require('serve-favicon');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const MongoStore = require('connect-mongo')(session);
 
-var app = express();
+const router = require('./server/router');
 
-app.use(webpackDevMiddleware(webpack(WebpackConfig), {
-    publicPath: '/__build__/',
-    stats: {
-        colors: true
-    }
+const app = express();
+app.listen(3000);
+app.use(express.static(path.join(__dirname, '/build')));
+app.use(favicon(__dirname + '/favicon.ico'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true}));
+app.use(cookieParser());
+app.use(session({
+    secret:"cocbin is a handsome boy",
+    store: new MongoStore({
+        url:'mongodb://localhost/session'
+    }),
+    cookie:{maxAge:24*60*60*1000},
+    resave:false,
+    saveUninitialized:true
 }));
 
-var fs = require('fs');
-var path = require('path');
+app.use(router);
 
-fs.readdirSync(__dirname).forEach(function (file) {
-    if (fs.statSync(path.join(__dirname, file)).isDirectory())
-        app.use(rewrite('/' + file + '/*', '/' + file + '/index.html'))
+app.get('/*',(req,res)=>{
+    res.sendfile(__dirname+'/build/index.html');
 });
 
-app.use(express.static(__dirname));
-
-app.listen(8080, function () {
-    console.log('Server listening on http://localhost:8080, Ctrl+C to stop')
-});
+mongoose.connect("mongodb://127.0.0.1:27017/cocbinblog");

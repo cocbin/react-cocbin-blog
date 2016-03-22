@@ -1,13 +1,21 @@
 
-
+#categoryBox {
+  position: relative;
+  width:100%;
+  height:100%;
+  overflow: hidden;
+}
 .cateList {
+  position: absolute;
+  top:0;
+  left:0;
   width:64px;
-  margin-right:16px;
+  padding:18px;
+  background: #fafafa;
   .cateIcon {
     display: block;
     font-size:30px;
   }
-  float: left;
 }
 
 .cateCell {
@@ -58,20 +66,16 @@
 }
 
 .cateDetailBox {
-  float: left;
+  position:absolute;
+  left:100px;
+  right: 0;
+  top:0;
+  bottom:0;
   opacity: 0;
-  padding-left: 20px;
-  padding-right: 20px;
-  width:550px;
   &.bounceInRight{
     opacity:1;
   }
   .articleTagIcon {
     color: #e1e1e1;
   }
-}
-
-.articleTagsBox {
-  float: left;
-  margin-right:20px;
 }

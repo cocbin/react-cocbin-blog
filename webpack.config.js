@@ -20,10 +20,10 @@ module.exports = {
                 test: /\.css$/, loader: "style!css"
             },
             {
-                test: /\.less/, loader: 'style-loader!css-loader!less-loader'
+                test:/\.(gif|jpg|png|woff|woff2|svg|eot|ttf)/,loader:'url-loader?limit=50000&name=[path][name].[ext]'
             },
             {
-                test:/\.(gif|jpg|png|woff|svg|eot|ttf)/,loader:'url-loader?limit=50000&name=[path][name].[ext]'
+                test: /\.less/, loader: 'style-loader!css-loader!less-loader'
             }
         ]
     },
@@ -31,6 +31,6 @@ module.exports = {
         extensions: ['', '.js', '.json']
     },
     plugins: [
-        new webpack.NoErrorsPlugin()
+        new webpack.HotModuleReplacementPlugin()
     ]
 };
