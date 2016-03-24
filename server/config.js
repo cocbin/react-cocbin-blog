@@ -1,6 +1,6 @@
 var pass = require('./pass').hash;
 
-config = {
+var config = {
     userName:"cocbin",
     password:"123456",
     salt:undefined,

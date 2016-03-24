@@ -244,4 +244,35 @@ router.post('/admin/logout',(req,res) => {
 });
 
 
-module .exports = router;
+function getInitState(req,callback) {
+    var routers = req.path.substr(1).split('/');
+    console.log(routers);
+    if(frontEndRouters[routers[0]]) {
+        if(routers.length>1) {
+            if(frontEndRouters[routers[0]])
+                frontEndRouters[routers[0]](req,routers[1],callback);
+        }else{
+            frontEndRouters[routers[0]](callback);
+        }
+    } else {
+        callback(undefined,undefined);
+    }
+
+}
+
+var frontEndRouters = {
+    'article':function(req,id,callback){
+        ArticleModel.findOneAndUpdate({id:id}, {$inc:{'look':1}})
+        .populate('tags category')
+        .exec((err,doc)=>{
+            if(err) {
+                callback("文章不存在");
+            } else {
+                callback(undefined,{article:doc,url:req.originalUrl})
+            }
+        });
+    }
+};
+
+module.exports = router;
+module.exports.getInitState = getInitState;
