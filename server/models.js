@@ -1,7 +1,6 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
-
 var IdsSchema = new Schema ({
     name:String,
     id:Number
@@ -49,7 +48,6 @@ var ArticleSchema = new Schema({
         default:0
     }
 });
-
 
 var Ids = mongoose.model('ids',IdsSchema);
 var CategoryModel = mongoose.model('category',CategorySchema);

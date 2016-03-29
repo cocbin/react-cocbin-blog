@@ -45,11 +45,11 @@ module.exports = [{
                 'NODE_ENV': JSON.stringify(process.env.NODE_ENV)
             }
         }),
-        //new webpack.optimize.UglifyJsPlugin({
-        //    compress: {
-        //        warnings: false
-        //    }
-        //})
+        new webpack.optimize.UglifyJsPlugin({
+           compress: {
+               warnings: false
+           }
+        })
     ]},
     {
     name:'server-side rendering',
@@ -92,10 +92,10 @@ module.exports = [{
                 'NODE_ENV': JSON.stringify(process.env.NODE_ENV)
             }
         }),
-        //new webpack.optimize.UglifyJsPlugin({
-        //    compress: {
-        //        warnings: false
-        //    }
-        //})
+        new webpack.optimize.UglifyJsPlugin({
+           compress: {
+               warnings: false
+           }
+        })
     ]
 }];

@@ -1,6 +1,0 @@
-{
-  "name":"AdminTags",
-  "private":true,
-  "version":"0.0.0",
-  "main":"./AdminTags.js"
-}

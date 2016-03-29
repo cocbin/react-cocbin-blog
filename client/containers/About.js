@@ -14,7 +14,7 @@ class About extends Component {
                         Cocbin's blog，是一个高度组件化，轻量级、高性能、开源的单页博客系统。由Cocbin自2016年3月份起开始开发的。该博客系统的主要特色有：简单美观的UI界面，人性化的发布流程，极易维护。
                     </p>
                     <p>
-                        项目地址:https://github.com/cocbin/cocbin-blog
+                        项目地址:https://github.com/cocbin/react-cocbin-blog
                     </p>
                     <p>
                         博客使用的技术栈如下，前端使用了ReactJS构建页面，服务端则使用Express对外提供API，数据库使用了Mongodb，前后端交互遵循RESTful API规范。整套系统都是由JavaScript开发的，使得前端人员很轻易地就能够进行拓展。

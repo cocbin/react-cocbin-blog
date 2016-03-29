@@ -1,9 +1,15 @@
-import React, {Component} from 'react';
-import {GET,POST,API} from '../Fetch';
+import React, {Component,PropTypes} from 'react';
+import {connect} from 'react-redux';
 
-import {addClass,removeClass,hasClass} from '../DomOperation';
-
-import notification from '../notification';
+import {addClass,removeClass,hasClass} from '../tools/DomOperation';
+import {
+    fetchStaticDataIfNeed,
+    showConfirm,
+    fetchArticleIfNeed,
+    editOneThing,
+    showNotification,
+    addOneThing
+} from '../actions';
 
 import './WriteArticle.less';
 
@@ -19,65 +25,41 @@ class WriteArticle extends Component {
             tagsSelecterShow:false,
             title:undefined,
             content:undefined,
-            description:undefined,
-            category:[],
-            tags:[]
+            description:undefined
         };
     }
 
     refresh(id){
-        GET(API.GET_ARTICLE,{id:id},(err,doc) => {
-            if(err) {
-                notification.notice({
-                    content:"获取文章失败,Err:"+err
-                });
-            } else {
-                this.setState({
-                    selectCate:doc.category,
-                    selectTags:doc.tags,
-                    title:doc.title,
-                    description:doc.description,
-                    content:doc.content
-                });
-                this.id = doc._id;
-            }
-        });
+        this.props.fetchArticleIfNeed(id);
     }
 
-
     componentDidMount() {
-        //获取标签
-        GET(API.GET_TAGS,undefined,(err,docs) => {
-            if(err) {
-                notification.notice({
-                    content:"获取标签失败,Err:"+err
-                });
-            } else {
-                this.setState({
-                    tags:docs
-                });
-            }
-        });
-
-        //获取类别
-        GET(API.GET_CATEGORY,undefined,(err,docs) => {
-            if(err) {
-                notification.notice({
-                    content:"获取类别失败,Err:"+err
-                });
-            } else {
-                this.setState({
-                    category:docs
-                });
-            }
-        });
+        this.props.initCategory();
+        this.props.initTags();
 
         if(this.props.params.id) {
             this.refresh(this.props.params.id);
         }
     }
 
+    componentWillReceiveProps(nextProps){
+        if(this.props.params.id&&nextProps.articles[this.prps.params]) {
+            let article = nextProps.articles[this.props.params.id];
+            this.setState({
+                selectCate:article.category,
+                selectTags:article.tags,
+                title:article.title,
+                description:article.description,
+                content:article.content
+            });
+        }
+    }
+
     render() {
+        if (!this.props.logged) {
+            return <div>权限不足</div>
+        }
+
         return (
         <div className = "animated bounceInRight wrtieArticle">
 
@@ -103,7 +85,7 @@ class WriteArticle extends Component {
                     value = {this.state.selectCate?this.state.selectCate.name:""}
                     readOnly/>
                 <ul className = "writeSelectorOptions" style = {{display:this.state.cateSelecterShow?"block":"none"}}>
-                    {this.state.category.map((row,key)=>this.renderWritePadOptions(row,key,"cate"))}
+                    {this.props.category.map((row,key)=>this.renderWritePadOptions(row,key,"cate"))}
                 </ul>
             </div>
 
@@ -125,7 +107,7 @@ class WriteArticle extends Component {
                         <span className = "iconfont">&#xe60e;</span>
                         <span className = "content">点击此处完成选择</span>
                     </li>
-                    {this.state.tags.map((row,key)=>this.renderWritePadOptions(row,key,"tags"))}
+                    {this.props.tags.map((row,key)=>this.renderWritePadOptions(row,key,"tags"))}
                 </ul>
             </div>
 
@@ -150,7 +132,7 @@ class WriteArticle extends Component {
                     placeholder = "Detail"
                     name = "content"
                     onChange = {this.onTextChange.bind(this)}
-                    style = {{height:242}}
+                    style = {{height:224}}
                     value = {this.state.content}/>
             </div>
 
@@ -221,9 +203,7 @@ class WriteArticle extends Component {
         article['content'] = this.state.content;
 
         if (this.hasEmptyColumn(article)) {
-            notification.notice({
-                content: "请将表单填写完整"
-            });
+            this.props.dispatch(showNotification('请将表单填写完整'));
         } else {
             article.category = article.category._id;
             var tags = [];
@@ -233,42 +213,9 @@ class WriteArticle extends Component {
             article.tags = tags;
 
             if (this.props.params.id) {
-                POST(API.UPDATE_ARTICLE,{id:this.id,set:article},(err,doc) => {
-                    if(err) {
-                        notification.notice({
-                            content:"文章修改失败,Err:"+err
-                        });
-                    } else {
-                        notification.notice({
-                            content:"文章修改成功!"
-                        });
-                    }
-                })
+                this.props.editArticle(this.props.params.id,article);
             } else {
-                POST(API.PUT_ARTICLE,article,(err,doc) => {
-                    if(err) {
-                        notification.notice({
-                            content:"文章发表失败,Err:"+err
-                        });
-                    } else {
-                        notification.notice({
-                            content:"文章发表成功!"
-                        });
-                        this.setState({
-                            title:"",
-                            selectCate:undefined,
-                            selectTags:[],
-                            description:"",
-                            content:""
-                        });
-
-                        var tagsView = this.refs.tagsView.getDOMNode();
-                        var tagsCells = tagsView.getElementsByTagName('LI');
-                        for(var i = 0;i<tagsCells.length;i++) {
-                            removeClass(tagsCells[i],'active');
-                        }
-                    }
-                })
+               this.props.addArticle(article);
             }
         }
     }
@@ -287,4 +234,23 @@ class WriteArticle extends Component {
     }
 }
 
-module.exports = WriteArticle;
+
+WriteArticle.propTypes = {
+    articles: PropTypes.object.isRequired,
+    category: PropTypes.array.isRequired,
+    initCategory: PropTypes.func.isRequired,
+    logged: PropTypes.bool.isRequired
+};
+
+export default connect(state => ({
+    articles: state.articles.articles ? state.articles.articles : {},
+    category: state.common.category ? state.common.category.dataList : [],
+    tags: state.common.tags ? state.common.tags.dataList : [],
+    logged: state.login.logged ? state.login.logged : false
+}), dispatch => ({
+    fetchArticleIfNeed: (id)=>dispatch(fetchArticleIfNeed(id)),
+    initCategory: () => dispatch(fetchStaticDataIfNeed('category')),
+    initTags: () => dispatch(fetchStaticDataIfNeed('tags')),
+    editArticle:(id,set) => dispatch(showConfirm('修改文章', '是否确定修改文章', editOneThing.bind(this, 'article', id, set))),
+    addArticle:(article) => dispatch(addOneThing('article',article))
+}))(WriteArticle);

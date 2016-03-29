@@ -1,35 +1,25 @@
 'use strict';
 
-import React ,{Component} from 'react';
-import {Link} from 'react-router';
+import React, {Component, PropTypes} from 'react';
+import {connect} from 'react-redux';
 
-import {GET,API} from '../tools/Fetch';
+import {refreshArticleList, loadMoreArticleList} from '../actions';
 import ArticleRow from './ArticleRow';
-import Notification from '../components/Notification';
 import Copyright from './Copyright';
+import Loadding from '../components/Loadding';
+import {addClass, removeClass} from '../tools/DomOperation';
 
-
-import {addClass,removeClass,hasClass} from '../tools/DomOperation';
-
-class CategoryDetail extends Component {
+class TagsDetail extends Component {
 
     constructor(props) {
         super(props);
-        this.state = {
-            id:0,
-            articles:[],
-            onLoadding:false,
-            hasLoadAll:false
-        };
-
-        this.page = 1;
         this.id = this.props.params.id;
     }
 
     componentWillUpdate(nextProps){
         if(nextProps.params.id != this.props.params.id) {
             this.id = nextProps.params.id;
-            this.refresh(nextProps.params.id);
+            this.refresh();
         }
     }
 
@@ -38,56 +28,16 @@ class CategoryDetail extends Component {
     }
 
     refresh(){
-        this.page = 1;
-        //刷新类别搜索内容
-        this.getArticleList();
 
-        //刷新动画
-        var box = this.refs.cateDetailBox.getDOMNode();
+        this.props.refreshArticle(this.id);
+        //refresh animation
+        var box = this.refs.cateDetailBox;
         if(box) {
             removeClass(box,"bounceInRight");
-
             setTimeout(()=>{
-                //find category by id
                 addClass(box,"bounceInRight");
             },100);
         }
-    }
-
-    loadMore() {
-        this.page++;
-        this.getArticleList();
-    }
-
-    getArticleList() {
-        GET(API.GET_ARTICLE_LIST,{tagsid:this.id,page:this.page,pagesize:20},(err,docs) => {
-            if(err) {
-                Notification.notice({
-                    content:"文章获取失败,ERR:"+err
-                });
-            } else {
-                if(this.page == 1) {
-                    this.setState({
-                        articles:docs,
-                        hasLoadAll: false
-                    });
-                } else {
-                    if(docs.length == 0) {
-                        this.setState({
-                            hasLoadAll:true,
-                            onLoadding:false
-                        });
-                    } else {
-                        var articles = this.state.articles;
-                        articles = articles.concat(docs);
-                        this.setState({
-                            articles:articles,
-                            onLoadding:false
-                        });
-                    }
-                }
-            }
-        })
     }
 
     render() {
@@ -98,39 +48,18 @@ class CategoryDetail extends Component {
                  style = {{overflowY:'scroll'}}
                  onScroll = {this.onScroll.bind(this)}>
                 <ul className = "articleInner" >
-                    {this.state.articles.map((row,key) => <ArticleRow article = {row} key = {key}/>)}
+                    {this.props.articles.map((row, key) => <ArticleRow article={row} key={key}/>)}
                 </ul>
-                {this.state.onLoadding&&
-                <div className = "spinner">
-                    <div className = "spinner-container container1">
-                        <div className = "circle1"></div>
-                        <div className = "circle2"></div>
-                        <div className = "circle3"></div>
-                        <div className = "circle4"></div>
-                    </div>
-                    <div className = "spinner-container container2">
-                        <div className = "circle1"></div>
-                        <div className = "circle2"></div>
-                        <div className = "circle3"></div>
-                        <div className = "circle4"></div>
-                    </div>
-                    <div className = "spinner-container container3">
-                        <div className = "circle1"></div>
-                        <div className = "circle2"></div>
-                        <div className = "circle3"></div>
-                        <div className = "circle4"></div>
-                    </div>
-                </div>}
-                {this.state.hasLoadAll&&<div className = "noMore">没有更多文章了</div>}
+                {this.props.isFetching && Loadding}
+                {this.props.noMore && <div className="noMore">没有更多文章了</div>}
                 <Copyright/>
             </div>
         );
     }
 
-
     onScroll(e){
 
-        if(this.state.onLoadding == true||this.state.hasLoadAll) {
+        if (this.props.isFetching == true || this.props.noMore) {
             return ;
         }
 
@@ -146,12 +75,24 @@ class CategoryDetail extends Component {
         var offsetHeight = e.target.offsetHeight;
 
         if(clientHeight - scrollTop - offsetHeight < 100) {
-            this.setState({
-                onLoadding:true
-            });
-            this.loadMore();
+            this.props.loadMoreArticle(this.id);
         }
     }
 }
 
-module.exports = CategoryDetail;
+TagsDetail.propTypes = {
+    articles: PropTypes.array.isRequired,
+    isFetching: PropTypes.bool.isRequired,
+    noMore: PropTypes.bool.isRequired,
+    refreshArticle: PropTypes.func.isRequired,
+    loadMoreArticle: PropTypes.func.isRequired
+};
+
+export default connect(state => ({
+    articles: state.articleList.tags ? state.articleList.tags.dataList : [],
+    isFetching: state.articleList.tags ? state.articleList.tags.isFetching : false,
+    noMore: state.articleList.tags ? state.articleList.tags.noMore : false
+}), dispatch => ({
+    refreshArticle: (id)=>dispatch(refreshArticleList('tags', {tagsid: id})),
+    loadMoreArticle: (id)=>dispatch(loadMoreArticleList('tags', {tagsid: id}))
+}))(TagsDetail);

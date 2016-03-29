@@ -1,22 +1,16 @@
-`use strict`;
+'use strict';
 
-import React ,{Component} from 'react';
+import React, {Component, PropTypes} from 'react';
+import {connect} from 'react-redux';
 import ArticleRow from './ArticleRow';
-import Notification from '../components/Notification';
 import Copyright from './Copyright';
-
-import {GET,POST,API} from '../tools/Fetch';
+import Loadding from '../components/Loadding';
+import {refreshArticleList, loadMoreArticleList} from  '../actions';
 
 class Article extends Component {
 
     constructor (props) {
         super(props);
-        this.state = {
-            articles:[],
-            onLoadding:false,
-            hasLoadAll:false
-        };
-        this.page = 1;
     }
 
     componentDidMount() {
@@ -24,43 +18,8 @@ class Article extends Component {
         if(this.props.params.id) {
            return ;
         } else {
-            this.getArticleList(1);
+            this.props.refreshArticle();
         }
-    }
-
-    loadMore() {
-        this.page++;
-        this.getArticleList(this.page);
-    }
-
-    getArticleList(page) {
-        GET(API.GET_ARTICLE_LIST,{page:page,pagesize:20},(err,docs) => {
-            if(err) {
-                Notification.notice({
-                    content:"文章获取失败,ERR:"+err
-                });
-            } else {
-                if(page==1) {
-                    this.setState({
-                        articles:docs
-                    });
-                } else {
-                    if(docs.length == 0) {
-                        this.setState({
-                            hasLoadAll:true,
-                            onLoadding:false
-                        });
-                    } else {
-                        var articles = this.state.articles;
-                        articles = articles.concat(docs);
-                        this.setState({
-                            articles:articles,
-                            onLoadding:false
-                        });
-                    }
-                }
-            }
-        })
     }
 
     render() {
@@ -71,40 +30,19 @@ class Article extends Component {
                 </div>
             )
         } else {
-            var articleList = this.state.articles?this.state.articles.map((row,id)=>{
-                return  <ArticleRow article = {row} key = {id}/>
-            }):<div/>;
-
-            return(
+            return (
                 <div
                      style = {{overflowY:'scroll',width:'100%',height:'100%'}}
                      onScroll = {this.onScroll.bind(this)}>
                     <div
                          className = "animated bounceInRight">
-                        {this.props.children}
-                        {articleList}
-                        {this.state.onLoadding&&<div class="spinner">
-                            <div class="spinner-container container1">
-                                <div class="circle1"></div>
-                                <div class="circle2"></div>
-                                <div class="circle3"></div>
-                                <div class="circle4"></div>
-                            </div>
-                            <div class="spinner-container container2">
-                                <div class="circle1"></div>
-                                <div class="circle2"></div>
-                                <div class="circle3"></div>
-                                <div class="circle4"></div>
-                            </div>
-                            <div class="spinner-container container3">
-                                <div class="circle1"></div>
-                                <div class="circle2"></div>
-                                <div class="circle3"></div>
-                                <div class="circle4"></div>
-                            </div>
-                        </div>}
-                        {this.state.hasLoadAll&&<div className = "noMore">没有更多文章了</div>}
-
+                        {
+                            this.props.articles ? this.props.articles.map((row, id)=> {
+                                return <ArticleRow article={row} key={id}/>
+                            }) : ""
+                        }
+                        {this.props.isFetching && Loadding}
+                        {this.props.noMore && <div className="noMore">没有更多文章了</div>}
                         <Copyright/>
                     </div>
                 </div>
@@ -113,32 +51,36 @@ class Article extends Component {
     }
 
     onScroll(e){
-
-
-        if(this.state.onLoadding == true||this.state.hasLoadAll) {
+        if (this.props.isFetching == true || this.props.noMore) {
             return ;
         }
-
         var scrollTop = e.target.scrollTop;
         if(this.lastScrollTop&&this.lastScrollTop-scrollTop > 0) {
             this.lastScrollTop = scrollTop;
             return ;
         }
-
         this.lastScrollTop = scrollTop;
-
         var clientHeight = e.target.firstChild.clientHeight;
         var offsetHeight = e.target.offsetHeight;
-
         if(clientHeight - scrollTop - offsetHeight < 100) {
-            this.setState({
-               onLoadding:true
-            });
-            this.loadMore();
+            this.props.loadMoreArticle();
         }
     }
-
-
 }
 
-module .exports = Article;
+Article.propTypes = {
+    articles: PropTypes.array.isRequired,
+    isFetching: PropTypes.bool.isRequired,
+    noMore: PropTypes.bool.isRequired,
+    refreshArticle: PropTypes.func.isRequired,
+    loadMoreArticle: PropTypes.func.isRequired
+};
+
+export default connect(state => ({
+    articles: state.articleList.home ? state.articleList.home.dataList : [],
+    isFetching: state.articleList.home ? state.articleList.home.isFetching : false,
+    noMore: state.articleList.home ? state.articleList.home.noMore : false
+}), dispatch => ({
+    refreshArticle: ()=>dispatch(refreshArticleList('home', {})),
+    loadMoreArticle: ()=>dispatch(loadMoreArticleList('home', {}))
+}))(Article);

@@ -1,59 +1,29 @@
 'use strict';
-import React, {Component} from 'react';
+import React, {Component, PropTypes} from 'react';
+import {connect} from 'react-redux';
 import './Notification.less';
 
 class Notification extends Component {
     constructor(props) {
         super(props);
-
-        this.state = {
-            content:props.content,
-            marginTop:0
-        };
-
-        this.timeoutId = setTimeout(()=>{
-            this.setState({
-               marginTop:-42
-            })
-        },5000);
-    }
-
-    componentWillReceiveProps(nextProps) {
-        clearTimeout(this.timeoutId);
-
-        this.setState({
-            content:nextProps.content,
-            marginTop:0
-        });
-
-        this.timeoutId = setTimeout(()=>{
-            this.setState({
-                marginTop:-42
-            })
-        },5000);
     }
 
     render() {
         return (
         <div className = "notification animated bounceIn"
-                    style = {
-                    {marginTop:this.state.marginTop}
-                    }>
-            {this.state.content}
+             style = {{top:this.props.show?0:-42}}>
+            {this.props.content}
         </div>
         );
     }
 }
 
-Notification.newInstance = function newNotificationInstance() {
-
-    return {
-        notice: function notice(noticeProps) {
-            React.render(<Notification {...noticeProps}/>, document.getElementById('notificationBox'));
-        }
-    };
+Notification.propTypes = {
+    show: PropTypes.bool.isRequired,
+    content: PropTypes.string.isRequired
 };
 
-var notification = Notification.newInstance();
-
-module.exports = notification;
+export default connect(state => ({
+    show:state.notification.show?state.notification.show:false,
+    content:state.notification.content?state.notification.content:""
+}))(Notification);

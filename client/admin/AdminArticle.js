@@ -1,17 +1,20 @@
 'use strict';
 
-import React, {Component} from 'react';
+import React, {Component, PropTypes} from 'react';
 import {Link} from 'react-router';
-import Date from '../Date';
-import notification from '../notification';
-import Confirm from '../confirm';
+import {connect} from 'react-redux';
 
-import {addClass,removeClass,hasClass} from '../DomOperation';
-import {GET,POST,API} from '../Fetch';
-
-
+import Date from '../tools/Date';
+import {addClass, removeClass} from '../tools/DomOperation';
 import './AdminArticle.less';
 
+import {
+    fetchStaticDataIfNeed,
+    removeOneThing,
+    showConfirm,
+    refreshArticleList,
+    loadMoreArticleList
+} from '../actions';
 
 class AdminArticle extends Component {
 
@@ -22,55 +25,17 @@ class AdminArticle extends Component {
             selectedCate:undefined,
             selectedTagValue:undefined,
             selectedTag:undefined,
-            category:[],
-            tags:[],
-            articles:[],
             onLoadding:false,
             hasLoadAll:false
         };
-
-        this.page = 1;
         this.id = this.props.params.id;
-    }
-
-    loadMore() {
-        this.page++;
-        this.getArticles();
+        this.shouldRefresh = true;
     }
 
     componentDidMount() {
-
-        if(!API.LOGGED) {
-            return ;
-        }
-
-        //获取标签
-        GET(API.GET_TAGS,undefined,(err,docs) => {
-            if(err) {
-                notification.notice({
-                    content:"标签获取失败,ERR:"+err
-                });
-            } else {
-                this.setState({
-                    tags:docs
-                });
-            }
-        });
-
-        //获取类别
-        GET(API.GET_CATEGORY,undefined,(err,docs) => {
-            if(err) {
-                notification.notice({
-                    content:"类别获取失败,ERR:"+err
-                });
-            } else {
-                this.setState({
-                    category:docs
-                });
-            }
-        });
-
         this.getArticles();
+        this.props.initCategory();
+        this.props.initTags();
     }
 
     getArticles(method,data) {
@@ -95,42 +60,18 @@ class AdminArticle extends Component {
                 params['tagsid'] = this.state.selectedTag._id;
             }
         }
-        params['page'] = this.page;
-        params['pagesize'] = 20;
-        GET(API.GET_ARTICLE_LIST,params,(err,docs) => {
-             if(err) {
-                 notification.notice({
-                     content:"文章获取失败,ERR:"+err
-                 });
-             } else {
-                 if(this.page == 1) {
-                     this.setState({
-                         articles:docs,
-                         hasLoadAll: false
-                     });
-                 } else {
-                     if (docs.length == 0) {
-                         this.setState({
-                             hasLoadAll: true,
-                             onLoadding: false
-                         });
-                     } else {
-                         var articles = this.state.articles;
-                         articles = articles.concat(docs);
-                         this.setState({
-                             articles: articles,
-                             onLoadding: false
-                         });
-                     }
-                 }
-             }
-        });
 
+        if(this.shouldRefresh) {
+            this.props.refreshArticle(params);
+            this.shouldRefresh = false;
+        } else {
+            this.props.loadMoreArticle(params);
+        }
     }
 
     render() {
 
-        if(!API.LOGGED) {
+        if (!this.props.logged) {
             return <div>权限不足</div>
         }
 
@@ -147,7 +88,7 @@ class AdminArticle extends Component {
                                     <span className = "selectorTriangle"/>
                                 </button>
                                 <ul className = "selectorOptions">
-                                    {this.state.category.map((row,key)=>this.renderOptions(row,key,"cate"))}
+                                    {this.props.category.map((row,key)=>this.renderOptions(row,key,"cate"))}
                                 </ul>
                             </div>
                             <div className = "selector">
@@ -156,7 +97,7 @@ class AdminArticle extends Component {
                                     <span className = "selectorTriangle"/>
                                 </button>
                                 <ul className = "selectorOptions">
-                                    {this.state.tags.map((row,key)=>this.renderOptions(row,key,"tag"))}
+                                    {this.props.tags.map((row,key)=>this.renderOptions(row,key,"tag"))}
                                 </ul>
                             </div>
                             <Link to = "/article/write">
@@ -165,6 +106,7 @@ class AdminArticle extends Component {
                         </div>
                         <div className="clearfix" style = {{marginTop:20}}>
                             <table>
+                                <tbody>
                                 <tr>
                                     <th>日期</th>
                                     <th>文章</th>
@@ -173,14 +115,15 @@ class AdminArticle extends Component {
                                     <th>操作</th>
                                 </tr>
 
-                                {this.state.articles.map((article,key)=>{
+                                {this.props.articles.map((article,key)=>{
                                     return this.renderArticle(article,key);
                                 })}
+                                </tbody>
                             </table>
                         </div>
                     </div>
-                    {this.state.onLoadding&&<div className = "loadMore">加载更多中</div>}
-                    {this.state.hasLoadAll&&<div className = "noMore">没有更多文章了</div>}
+                    {this.props.isFetching&&<div className = "loadMore">加载更多中</div>}
+                    {this.props.noMore&&<div className = "noMore">没有更多文章了</div>}
                 </div>
             </div>
         )
@@ -213,14 +156,14 @@ class AdminArticle extends Component {
                 selectedCate:row,
                 selectedCateValue:row.name
             });
-            this.page = 1;
+            this.shouldRefresh = true;
             this.getArticles('cate',row);
         } else {
             this.setState({
                 selectedTag:row,
                 selectedTagValue:row.name
             });
-            this.page = 1;
+            this.shouldRefresh = true;
             this.getArticles('tag',row);
         }
     }
@@ -242,7 +185,7 @@ class AdminArticle extends Component {
                 </td>
                 <td>
                     <Link to = {"/article/edit/" + article.id}><button className = "btn" style = {{width:120,height:30}}>编辑</button></Link>
-                    <button className = "btndel" style = {{width:120,height:30}} onClick = {this.removeArticle.bind(this,article._id,key)}>删除</button>
+                    <button className = "btndel" style = {{width:120,height:30}} onClick = {this.props.removeArticle.bind(this,article._id)}>删除</button>
                 </td>
             </tr>
         )
@@ -250,7 +193,7 @@ class AdminArticle extends Component {
 
     onScroll(e) {
 
-        if(this.state.onLoadding == true||this.state.hasLoadAll) {
+        if(this.props.isFetching == true||this.props.noMore) {
             return ;
         }
 
@@ -266,40 +209,32 @@ class AdminArticle extends Component {
         var offsetHeight = e.target.offsetHeight;
 
         if(clientHeight - scrollTop - offsetHeight < 100) {
-            this.setState({
-                onLoadding:true
-            });
-            this.loadMore();
+            this.getArticles();
         }
-    }
-
-    removeArticle(id,pos) {
-        Confirm.show({
-            title:"删除文章",
-            content:"是否确定删除选中的文章",
-            callback:(result)=>{
-                if(result) {
-                    POST(API.REMOVE_ARTICLE,{id:id},(err) => {
-                        if(err) {
-                            notification.notice({
-                                content:"删除文章失败,Err:"+err
-                            });
-                        } else {
-                            var newArticle = this.state.articles;
-                            newArticle.splice(pos,1);
-                            this.setState({
-                                articles:newArticle
-                            });
-                            notification.notice({
-                                content:"删除文章成功!"
-                            });
-                        }
-                    })
-                }
-            }
-        });
     }
 }
 
+AdminArticle.propTypes = {
+    articles: PropTypes.array.isRequired,
+    category: PropTypes.array.isRequired,
+    isFetching: PropTypes.bool.isRequired,
+    initCategory: PropTypes.func.isRequired,
+    logged: PropTypes.bool.isRequired
+};
 
-module .exports = AdminArticle;
+export default connect(state => ({
+    articles: state.articleList.admin ? state.articleList.admin.dataList : [],
+    category: state.common.category ? state.common.category.dataList : [],
+    tags: state.common.tags ? state.common.tags.dataList : [],
+    logged: state.login.logged ? state.login.logged : false,
+    isFetching: state.articleList.admin ? state.articleList.admin.isFetching : false,
+    noMore: state.articleList.admin ? state.articleList.admin.noMore : false
+}), dispatch => ({
+    initCategory: () => dispatch(fetchStaticDataIfNeed('category')),
+    initTags: () => dispatch(fetchStaticDataIfNeed('tags')),
+    removeArticle: (id) => {
+        dispatch(showConfirm('删除文章', '是否确定删除文章', removeOneThing.bind(this, 'article', id)));
+    },
+    refreshArticle: (params)=>dispatch(refreshArticleList('admin', params)),
+    loadMoreArticle: (params)=>dispatch(loadMoreArticleList('admin', params))
+}))(AdminArticle);

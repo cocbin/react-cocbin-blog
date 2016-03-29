@@ -1,9 +1,12 @@
 'use strict';
 
-import React, {Component} from 'react';
-import { API,POST} from '../tools/Fetch';
+import React, {Component,PropTypes} from 'react';
+import {connect} from 'react-redux';
 
+import Notification from '../components/Notification';
+import Confirm from '../components/Confirm';
 import Menu from  './Menu';
+import {checkLogin} from '../actions';
 
 import './App.less';
 
@@ -11,52 +14,34 @@ class App extends Component {
 
     constructor(props) {
         super(props);
-
-        this.state = {
-            logged: false
-        }
-    }
-
-    componentDidMount() {
-        //获取登录状态
-        console.log(this.props.location);
-        console.log(this.props.routes);
-        POST(API.ADMIN_CHECKLOGIN, undefined, (err) => {
-            if (err == undefined) {
-                API.LOGGED = true;
-                this.setState({
-                    logged: true
-                });
-            }
-        });
-    }
-
-    componentWillUpdate(nextProps) {
-        if (nextProps.location.state && nextProps.location.state.logged != this.state.logged) {
-            this.setState({
-                logged: nextProps.location.state.logged
-            })
-        }
+        this.props.checkLogin();
     }
 
     render() {
+        var menuWidth;
         if (typeof window !== "undefined") {
-            var menuWith = this.props.routes.length == 1 ? "100%" : 240;
+            menuWidth = this.props.routes.length == 1 ? "100%" : 240;
         } else {
-            var menuWith = this.props.routes.length == 2 ? "100%" : 240;
+            menuWidth = this.props.routes.length == 2 ? "100%" : 240;
         }
 
         return (
             <div id="container">
-                <Menu id="menuBox" width={menuWith} logged={this.state.logged}/>
+                <Menu id="menuBox" width={menuWidth}/>
                 <div id="articleBox">
                     {this.props.children}
                 </div>
-                <div id="notificationBox"></div>
-                <div id="confirmBox"></div>
+                <Notification/>
+                <Confirm/>
             </div>
         );
     }
 }
 
-export default App;
+App.propTypes = {
+    checkLogin:PropTypes.func.isRequired
+};
+
+export default connect(undefined,(dispatch) =>({
+    checkLogin:() => dispatch(checkLogin())
+}))(App);

@@ -1,36 +1,29 @@
 'use strict';
 
-import React, {Component} from 'react';
-import {Link,browserHistory} from 'react-router';
-import Notification from '../components/Notification';
-import ScrollBar from '../components/ScrollBar';
+import React, {Component, PropTypes} from 'react';
+import {Link} from 'react-router';
+import {connect} from 'react-redux';
+import {push} from 'react-router-redux';
 
-import {GET,API} from '../tools/Fetch';
+import ScrollBar from '../components/ScrollBar';
+import {fetchStaticDataIfNeed} from '../actions'
 
 class Tags extends Component {
 
     constructor(props) {
         super(props);
-        this.state = {
-            tags:[]
-        }
     }
 
     componentDidMount() {
-        GET(API.GET_TAGS,undefined,(err,dataList)=>{
-            if(err) {
-                Notification.notice({
-                    content:"获取标签列表失败,Err:"+err
-                });
-            } else {
-                this.setState({
-                    tags:dataList
-                });
-                if(dataList.length>0) {
-                    browserHistory.push('/tags/'+dataList[0]._id);
-                }
+        this.props.initTags();
+    }
+
+    componentWillReceiveProps(nextProps) {
+        if (!nextProps.params.id) {
+            if (nextProps.tags.length > 0) {
+                nextProps.pushToFirstTags(nextProps.tags[0]._id);
             }
-        });
+        }
     }
 
     render() {
@@ -38,8 +31,8 @@ class Tags extends Component {
             <div id = "categoryBox" className = "animated bounceInRight">
                 <ScrollBar>
                     <ul className="cateList">
-                        {this.state.tags.map((tag,key)=>{
-                            return this.renderTagsList(tag,key)
+                        {this.props.tags.map((tag, key)=> {
+                            return Tags.renderTagsList(tag, key)
                         })}
                     </ul>
                 </ScrollBar>
@@ -48,7 +41,7 @@ class Tags extends Component {
         )
     }
 
-    renderTagsList(tag,key){
+    static renderTagsList(tag, key) {
         return (
             <li className = "cateCell" key = {key}>
                 <Link to = {'/tags/'+tag._id} activeStyle = {{"color":"#000"}} >
@@ -58,7 +51,21 @@ class Tags extends Component {
             </li>
         )
     }
-
 }
 
-module .exports = Tags;
+Tags.propTypes = {
+    tags: PropTypes.array.isRequired,
+    isFetching: PropTypes.bool.isRequired,
+    initTags: PropTypes.func.isRequired,
+    pushToFirstTags: PropTypes.func.isRequired,
+    hash: PropTypes.string.isRequired
+};
+
+export default connect(state => ({
+    tags: state.common.tags ? state.common.tags.dataList : [],
+    isFetching: state.common.tags ? state.common.tags.isFetching : false,
+    hash: state.common.tags ? state.common.tags.hash : ""
+}), dispatch => ({
+    initTags: ()=>dispatch(fetchStaticDataIfNeed('tags')),
+    pushToFirstTags: (id)=>dispatch(push('/tags/' + id))
+}))(Tags);

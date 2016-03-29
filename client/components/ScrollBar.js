@@ -20,7 +20,7 @@ class ScrollBar extends Component {
 
     handleScroll(e) {
 
-        var target = this.refs.scrollBar.getDOMNode();
+        var target = this.refs.scrollBar;
 
         const scrollBarHeight = target.offsetHeight;
         const height = target.firstChild.scrollHeight;
@@ -44,4 +44,4 @@ class ScrollBar extends Component {
     }
 }
 
-module.exports = ScrollBar;
+export default ScrollBar;

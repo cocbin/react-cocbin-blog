@@ -1,13 +1,15 @@
 'use strict';
 
-import React,{Component} from 'react';
+import React, {Component, PropTypes} from 'react';
+import {connect} from 'react-redux';
 import marked from 'marked';
 
-import {GET,API,POST} from '../tools/Fetch';
-import Notification from '../components/Notification';
-import './github.markdown.less';
+import {fetchArticleIfNeed, likeOrDislikeArticle} from '../actions';
+import Loadding from '../components/Loadding';
 import Copyright from './Copyright';
 import {hasClass} from '../tools/DomOperation';
+
+import './github.markdown.less';
 
 marked.setOptions({
     renderer: new marked.Renderer(),
@@ -32,12 +34,6 @@ class ArticleDetail extends Component {
 
     constructor(props) {
         super(props);
-        console.log(props);
-        this.state = {
-            article:this.props.location.state&&this.props.location.state.article,
-            url:this.props.location.state&&this.props.location.state.url,
-            isLoading:true
-        }
     }
 
     componentDidMount() {
@@ -50,51 +46,19 @@ class ArticleDetail extends Component {
         }
     }
 
-    refresh(id){
-
-        this.setState({isLoading:true});
-        GET(API.GET_ARTICLE,{id:id},(err,doc) => {
-            if(err) {
-                Notification.notice({
-                    content:"获取文章失败,Err:"+err
-                });
-                this.setState({isLoading:false});
-            } else {
-                this.setState({
-                    article:doc,
-                    isLoading:false
-                });
-            }
-        });
+    refresh(id) {
+        this.props.fetchArticleIfNeed(id);
     }
 
     render() {
-        let article = this.state.article;
+        let article = this.props.articles[this.props.params.id];
 
-        if(this.state.isLoading) {
-            return (
-                <div className = "spinner">
-                    <div className = "spinner-container container1">
-                        <div className = "circle1"></div>
-                        <div className = "circle2"></div>
-                        <div className = "circle3"></div>
-                        <div className = "circle4"></div>
-                    </div>
-                    <div className = "spinner-container container2">
-                        <div className = "circle1"></div>
-                        <div className = "circle2"></div>
-                        <div className = "circle3"></div>
-                        <div className = "circle4"></div>
-                    </div>
-                    <div className = "spinner-container container3">
-                        <div className = "circle1"></div>
-                        <div className = "circle2"></div>
-                        <div className = "circle3"></div>
-                        <div className = "circle4"></div>
-                    </div>
-                </div>
-            )
+        if (this.props.isFetching) {
+            return Loadding;
         } else {
+            if (!article) {
+                return <div>404</div>;
+            }
             var content;
             //去标题
             content = article.content;
@@ -149,7 +113,8 @@ class ArticleDetail extends Component {
 
 
                         <div dangerouslySetInnerHTML = {{__html:(marked(content))}}/>
-                        <div ref = "dsBox" data-thread-key = {article._id} data-title= {article.title} data-url = {this.state.url||document.URL}></div>
+                        <div ref="dsBox" data-thread-key={article._id} data-title={article.title}
+                             data-url={document.URL}></div>
 
                         <Copyright/>
                     </div>
@@ -159,38 +124,36 @@ class ArticleDetail extends Component {
     }
 
     componentDidUpdate() {
-        if(this.state.article) {
+        const article = this.props.articles[this.props.params.id];
+        if (article) {
             //更新完毕后,加载多说评论
-            var el = this.refs.dsBox.getDOMNode();
+            var el = this.refs.dsBox;
             //依赖多说  需要在html文件中引入多说评论的js文件
             DUOSHUO.EmbedThread(el);
             var that = this;
             //为喜欢按钮绑定事件
+            var times = 0;
+            if(el)
             var interval = setInterval(()=>{
+                times++;
                 if(el.getElementsByClassName('ds-like-thread-button').length>0) {
                     clearInterval(interval);
                     var likeButton = el.getElementsByClassName('ds-like-thread-button')[0];
                     likeButton.onclick = function () {
                         if(hasClass(likeButton, "ds-thread-liked")) {
-                            POST(API.LIKE_ARTICLE,{id:that.state.article._id,like:true},(err)=>{
-                                if(err) {
-                                    console.log(err);
-                                }
-                            });
+                            that.props.likeOrDislikeArticle(article._id, true);
                         } else {
-                            POST(API.LIKE_ARTICLE,{id:that.state.article._id,like:false},(err)=>{
-                                if(err) {
-                                    console.log(err);
-                                }
-                            });
+                            that.props.likeOrDislikeArticle(article._id, false);
                         }
                     }
+                }
+                if(times>20) {
+                    clearInterval(interval);
                 }
             },100);
         }
     }
 }
-
 
 class ArticleInfoRow extends Component {
     render () {
@@ -203,4 +166,17 @@ class ArticleInfoRow extends Component {
     }
 }
 
-module .exports = ArticleDetail;
+ArticleDetail.propTypes = {
+    articles: PropTypes.object.isRequired,
+    isFetching: PropTypes.bool.isRequired,
+    fetchArticleIfNeed: PropTypes.func.isRequired,
+    likeOrDislikeArticle: PropTypes.func.isRequired
+};
+
+export default connect(state => ({
+    articles: state.articles.articles ? state.articles.articles : {},
+    isFetching: state.articles.isFetching ? state.articles.isFetching : false
+}), dispatch => ({
+    fetchArticleIfNeed: (id)=>dispatch(fetchArticleIfNeed(id)),
+    likeOrDislikeArticle: likeOrDislikeArticle
+}))(ArticleDetail);
